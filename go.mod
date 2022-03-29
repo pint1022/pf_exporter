@@ -1,4 +1,4 @@
-module github.com/NVIDIA/dcgm-exporter
+module github.com/pint1022/pf_exporter
 
 go 1.16
 

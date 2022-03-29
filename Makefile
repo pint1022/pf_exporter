@@ -20,29 +20,29 @@ DCGM_VERSION   := 2.3.4
 GOLANG_VERSION := 1.17
 VERSION        := 0.0.1
 FULL_VERSION   := $(DCGM_VERSION)-$(VERSION)
-OUTPUT         := type=oci,dest=/tmp/dcgm-exporter.tar
+OUTPUT         := type=oci,dest=/tmp/pf-exporter.tar
 PLATFORMS      := linux/amd64
 DOCKERCMD      := docker build
 
-# NON_TEST_FILES  := pkg/dcgmexporter/dcgm.go pkg/dcgmexporter/gpu_collector.go pkg/dcgmexporter/parser.go
-# NON_TEST_FILES  += pkg/dcgmexporter/pipeline.go pkg/dcgmexporter/server.go pkg/dcgmexporter/system_info.go
-# NON_TEST_FILES  += pkg/dcgmexporter/types.go pkg/dcgmexporter/utils.go pkg/dcgmexporter/kubernetes.go
+NON_TEST_FILES  := pkg/pfexporter/dcgm.go pkg/pfexporter/gpu_collector.go pkg/pfexporter/parser.go
+NON_TEST_FILES  += pkg/pfexporter/pipeline.go pkg/pfexporter/server.go pkg/pfexporter/system_info.go
+NON_TEST_FILES  += pkg/pfexporter/types.go pkg/pfexporter/utils.go pkg/pfexporter/kubernetes.go
 NON_TEST_FILES  += cmd/pf-exporter/main.go
-MAIN_TEST_FILES := pkg/dcgmexporter/system_info_test.go
+MAIN_TEST_FILES := pkg/pfexporter/system_info_test.go
 
 .PHONY: all binary install check-format local
 all: ubuntu20.04 ubi8
 
 binary:
-	cd cmd/dcgm-exporter; go build -ldflags "-X main.BuildVersion=${DCGM_VERSION}-${VERSION}"
+	cd cmd/pf-exporter; go build -ldflags "-X main.BuildVersion=${DCGM_VERSION}-${VERSION}"
 
 test-main: $(NON_TEST_FILES) $(MAIN_TEST_FILES)
 	go test ./...
 
 install: binary
-	install -m 557 cmd/dcgm-exporter/dcgm-exporter /usr/bin/dcgm-exporter
-	install -m 557 -D ./etc/default-counters.csv /etc/dcgm-exporter/default-counters.csv
-	install -m 557 -D ./etc/dcp-metrics-included.csv /etc/dcgm-exporter/dcp-metrics-included.csv
+	install -m 557 cmd/pf-exporter/pf-exporter /usr/bin/pf-exporter
+	install -m 557 -D ./etc/default-counters.csv /etc/pf-exporter/default-counters.csv
+	install -m 557 -D ./etc/dcp-metrics-included.csv /etc/pf-exporter/dcp-metrics-included.csv
 
 check-format:
 	test $$(gofmt -l pkg | tee /dev/stderr | wc -l) -eq 0
@@ -75,5 +75,5 @@ ubi8:
 		--build-arg "GOLANG_VERSION=$(GOLANG_VERSION)" \
 		--build-arg "DCGM_VERSION=$(DCGM_VERSION)" \
 		--build-arg "VERSION=$(FULL_VERSION)" \
-		--tag "$(REGISTRY)/dcgm-exporter:$(FULL_VERSION)-ubi8" \
+		--tag "$(REGISTRY)/pf-exporter:$(FULL_VERSION)-ubi8" \
 		--file docker/Dockerfile.ubi8 .

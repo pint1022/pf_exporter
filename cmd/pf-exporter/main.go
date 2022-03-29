@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/NVIDIA/go-dcgm/pkg/dcgm"
+	"github.com/pint1022/pf_exporter/pkg/pfexporter"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -58,7 +59,7 @@ var (
 
 func main() {
 	c := cli.NewApp()
-	c.Name = "DCGM Exporter"
+	c.Name = "Profiler Exporter"
 	c.Usage = "Generates GPU metrics in the prometheus format"
 	c.Version = BuildVersion
 
@@ -92,7 +93,7 @@ func main() {
 			Name:    CLIFieldsFile,
 			Aliases: []string{"f"},
 			Usage:   "Path to the file, that contains the DCGM fields to collect",
-			Value:   "/etc/dcgm-exporter/default-counters.csv",
+			Value:   "/etc/pf-exporter/default-counters.csv",
 			EnvVars: []string{"DCGM_EXPORTER_COLLECTORS"},
 		},
 		&cli.StringFlag{
@@ -139,9 +140,9 @@ func main() {
 		},
 		&cli.StringFlag{
 			Name:  CLIKubernetesGPUIDType,
-			Value: string(dcgmexporter.GPUUID),
+			Value: string(pfexporter.GPUUID),
 			Usage: fmt.Sprintf("Choose Type of GPU ID to use to map kubernetes resources to pods. Possible values: '%s', '%s'",
-				dcgmexporter.GPUUID, dcgmexporter.DeviceName),
+				pfexporter.GPUUID, pfexporter.DeviceName),
 			EnvVars: []string{"DCGM_EXPORTER_KUBERNETES_GPU_ID_TYPE"},
 		},
 		&cli.StringFlag{
@@ -219,13 +220,13 @@ restart:
 	}
 
 	ch := make(chan string, 10)
-	pipeline, cleanup, err := dcgmexporter.NewMetricsPipeline(config)
+	pipeline, cleanup, err := pfexporter.NewMetricsPipeline(config)
 	defer cleanup()
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	server, cleanup, err := dcgmexporter.NewMetricsServer(config, ch)
+	server, cleanup, err := pfexporter.NewMetricsServer(config, ch)
 	defer cleanup()
 	if err != nil {
 		return err
@@ -245,7 +246,7 @@ restart:
 		select {
 		case sig := <-sigs:
 			close(stop)
-			err := dcgmexporter.WaitWithTimeout(&wg, time.Second*2)
+			err := pfexporter.WaitWithTimeout(&wg, time.Second*2)
 			if err != nil {
 				logrus.Fatal(err)
 			}
@@ -261,7 +262,7 @@ restart:
 	return nil
 }
 
-func parseDeviceOptionsToken(token string, dOpt *dcgmexporter.DeviceOptions) error {
+func parseDeviceOptionsToken(token string, dOpt *pfexporter.DeviceOptions) error {
 	letterAndRange := strings.Split(token, ":")
 	count := len(letterAndRange)
 	if count > 2 {
@@ -322,8 +323,8 @@ func parseDeviceOptionsToken(token string, dOpt *dcgmexporter.DeviceOptions) err
 	return nil
 }
 
-func parseDeviceOptions(c *cli.Context) (dcgmexporter.DeviceOptions, error) {
-	var dOpt dcgmexporter.DeviceOptions
+func parseDeviceOptions(c *cli.Context) (pfexporter.DeviceOptions, error) {
+	var dOpt pfexporter.DeviceOptions
 	devices := c.String(CLIDevices)
 
 	letterAndRange := strings.Split(devices, ":")
@@ -386,18 +387,18 @@ func parseDeviceOptions(c *cli.Context) (dcgmexporter.DeviceOptions, error) {
 	return dOpt, nil
 }
 
-func contextToConfig(c *cli.Context) (*dcgmexporter.Config, error) {
+func contextToConfig(c *cli.Context) (*pfexporter.Config, error) {
 	dOpt, err := parseDeviceOptions(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return &dcgmexporter.Config{
+	return &pfexporter.Config{
 		CollectorsFile:      c.String(CLIFieldsFile),
 		Address:             c.String(CLIAddress),
 		CollectInterval:     c.Int(CLICollectInterval),
 		Kubernetes:          c.Bool(CLIKubernetes),
-		KubernetesGPUIdType: dcgmexporter.KubernetesGPUIDType(c.String(CLIKubernetesGPUIDType)),
+		KubernetesGPUIdType: pfexporter.KubernetesGPUIDType(c.String(CLIKubernetesGPUIDType)),
 		CollectDCP:          true,
 		UseOldNamespace:     c.Bool(CLIUseOldNamespace),
 		UseRemoteHE:         c.IsSet(CLIRemoteHEInfo),
